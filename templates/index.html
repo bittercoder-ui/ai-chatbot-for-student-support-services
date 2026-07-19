@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Outcome Forecast — student performance predictor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1c2431;
+    --ink-soft:#4d5566;
+    --paper:#f3f2ee;
+    --card:#ffffff;
+    --line:#dedad2;
+    --gold:#b8860b;
+    --gold-bg:#f6ecd2;
+    --teal:#1d6b5c;
+    --teal-bg:#e2efe9;
+    --terracotta:#a3492f;
+    --terracotta-bg:#f6e6e0;
+    --slate:#4c5566;
+    --slate-bg:#e7e8ec;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:'Inter',sans-serif; line-height:1.5;
+  }
+  .wrap{max-width:880px; margin:0 auto; padding:48px 24px 96px;}
+  header{margin-bottom:40px;}
+  .eyebrow{
+    font-size:13px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--ink-soft); margin:0 0 10px;
+  }
+  h1{
+    font-family:'Fraunces',serif; font-weight:500; font-size:44px;
+    margin:0 0 12px; letter-spacing:-.01em;
+  }
+  header p{color:var(--ink-soft); font-size:16px; max-width:520px; margin:0;}
+
+  .grid{display:grid; grid-template-columns: 1.1fr 1fr; gap:28px;}
+  @media (max-width: 760px){ .grid{grid-template-columns:1fr;} }
+
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:10px;
+    padding:28px;
+  }
+  .card h2{
+    font-family:'Fraunces',serif; font-weight:500; font-size:20px; margin:0 0 20px;
+  }
+  fieldset{border:none; padding:0; margin:0 0 22px;}
+  legend{
+    font-size:12px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--ink-soft); margin-bottom:10px; padding:0;
+  }
+  .field-row{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;}
+  label{display:block; font-size:13px; color:var(--ink-soft); margin-bottom:5px;}
+  input, select{
+    width:100%; padding:9px 10px; font-size:14px; font-family:inherit;
+    border:1px solid var(--line); border-radius:6px; background:#fbfaf8; color:var(--ink);
+  }
+  input:focus, select:focus{
+    outline:2px solid var(--gold); outline-offset:1px; border-color:var(--gold);
+  }
+  button{
+    width:100%; padding:13px; font-size:15px; font-weight:500; font-family:inherit;
+    background:var(--ink); color:var(--paper); border:none; border-radius:7px;
+    cursor:pointer; margin-top:6px;
+  }
+  button:hover{background:#2b3346;}
+  button:disabled{opacity:.6; cursor:progress;}
+
+  .result-empty{color:var(--ink-soft); font-size:14px;}
+  .result-pred{
+    display:flex; align-items:baseline; gap:10px; margin-bottom:24px;
+  }
+  .result-pred .label{font-size:13px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.06em;}
+  .result-pred .value{font-family:'Fraunces',serif; font-size:30px; font-weight:600;}
+
+  .bar-row{margin-bottom:14px;}
+  .bar-row .top{display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px;}
+  .bar-track{height:10px; border-radius:5px; background:var(--slate-bg); overflow:hidden;}
+  .bar-fill{height:100%; border-radius:5px;}
+
+  .c-Distinction .value, .c-Distinction .top .name{color:var(--gold);}
+  .c-Pass .value, .c-Pass .top .name{color:var(--teal);}
+  .c-Fail .value, .c-Fail .top .name{color:var(--terracotta);}
+  .c-Withdrawn .value, .c-Withdrawn .top .name{color:var(--slate);}
+
+  .fill-Distinction{background:var(--gold);}
+  .fill-Pass{background:var(--teal);}
+  .fill-Fail{background:var(--terracotta);}
+  .fill-Withdrawn{background:var(--slate);}
+
+  .note{
+    margin-top:24px; padding-top:18px; border-top:1px solid var(--line);
+    font-size:12.5px; color:var(--ink-soft);
+  }
+  .error{color:var(--terracotta); font-size:14px; margin-top:10px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Learning analytics · forecast</p>
+    <h1>Will this student pass?</h1>
+    <p>Enter a student's enrollment details and engagement so far, and the model estimates their likely final outcome — Distinction, Pass, Fail, or Withdrawn.</p>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Student record</h2>
+      <form id="form">
+        <fieldset>
+          <legend>Course &amp; demographics</legend>
+          <div class="field-row">
+            <div>
+              <label for="code_module">Module</label>
+              <select id="code_module" required></select>
+            </div>
+            <div>
+              <label for="code_presentation">Presentation</label>
+              <select id="code_presentation" required></select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div>
+              <label for="gender">Gender</label>
+              <select id="gender" required></select>
+            </div>
+            <div>
+              <label for="age_band">Age band</label>
+              <select id="age_band" required></select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div>
+              <label for="region">Region</label>
+              <select id="region" required></select>
+            </div>
+            <div>
+              <label for="disability">Disability</label>
+              <select id="disability" required></select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div>
+              <label for="highest_education">Highest education</label>
+              <select id="highest_education" required></select>
+            </div>
+            <div>
+              <label for="imd_band">Deprivation band (IMD)</label>
+              <select id="imd_band" required></select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div>
+              <label for="num_of_prev_attempts">Previous attempts</label>
+              <input type="number" id="num_of_prev_attempts" value="0" min="0" required>
+            </div>
+            <div>
+              <label for="studied_credits">Studied credits</label>
+              <input type="number" id="studied_credits" value="60" min="0" required>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Assessment &amp; engagement</legend>
+          <div class="field-row">
+            <div>
+              <label for="avg_score">Average assessment score</label>
+              <input type="number" id="avg_score" value="70" step="0.1" required>
+            </div>
+            <div>
+              <label for="max_score">Max score</label>
+              <input type="number" id="max_score" value="87" step="0.1" required>
+            </div>
+          </div>
+          <div class="field-row">
+            <div>
+              <label for="min_score">Min score</label>
+              <input type="number" id="min_score" value="52" step="0.1" required>
+            </div>
+            <div>
+              <label for="total_assessments">Assessments submitted</label>
+              <input type="number" id="total_assessments" value="5" min="0" required>
+            </div>
+          </div>
+          <div class="field-row">
+            <div>
+              <label for="avg_weight">Average assessment weight</label>
+              <input type="number" id="avg_weight" value="8.3" step="0.1" required>
+            </div>
+            <div>
+              <label for="date_registration">Registration day (vs course start)</label>
+              <input type="number" id="date_registration" value="-57" required>
+            </div>
+          </div>
+          <div class="field-row">
+            <div>
+              <label for="total_clicks">Total VLE clicks</label>
+              <input type="number" id="total_clicks" value="575" min="0" required>
+            </div>
+            <div>
+              <label for="avg_clicks">Average clicks per session</label>
+              <input type="number" id="avg_clicks" value="3" step="0.1" min="0" required>
+            </div>
+          </div>
+          <div class="field-row">
+            <div>
+              <label for="max_clicks">Max clicks in a session</label>
+              <input type="number" id="max_clicks" value="28" min="0" required>
+            </div>
+            <div>
+              <label for="total_interactions">Total VLE interactions</label>
+              <input type="number" id="total_interactions" value="184" min="0" required>
+            </div>
+          </div>
+          <div class="field-row">
+            <div>
+              <label for="active_days">Active days</label>
+              <input type="number" id="active_days" value="40" min="0" required>
+            </div>
+            <div></div>
+          </div>
+        </fieldset>
+
+        <button type="submit" id="submitBtn">Forecast outcome</button>
+        <div class="error" id="errorBox" style="display:none;"></div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Forecast</h2>
+      <div id="resultEmpty" class="result-empty">Fill in the form and submit to see a forecast here.</div>
+      <div id="resultBody" style="display:none;">
+        <div class="result-pred">
+          <span class="label">Most likely</span>
+          <span class="value" id="predValue">—</span>
+        </div>
+        <div id="bars"></div>
+      </div>
+      <div class="note">Estimates come from a gradient-boosted tree model trained on historical course records. Use as one input among several, not as the sole basis for a decision about a student.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const OPTIONS = {
+  code_module: ["AAA","BBB","CCC","DDD","EEE","FFF","GGG"],
+  code_presentation: ["2013B","2013J","2014B","2014J"],
+  gender: ["F","M"],
+  age_band: ["0-35","35-55","55<="],
+  region: ["East Anglian Region","East Midlands Region","Ireland","London Region","North Region","North Western Region","Scotland","South East Region","South Region","South West Region","Wales","West Midlands Region","Yorkshire Region"],
+  disability: ["N","Y"],
+  highest_education: ["No Formal quals","Lower Than A Level","A Level or Equivalent","HE Qualification","Post Graduate Qualification"],
+  imd_band: ["0-10%","10-20","20-30%","30-40%","40-50%","50-60%","60-70%","70-80%","80-90%","90-100%","Unknown"],
+};
+for (const [id, values] of Object.entries(OPTIONS)) {
+  const el = document.getElementById(id);
+  el.innerHTML = values.map(v => `<option value="${v}">${v}</option>`).join('');
+}
+
+const NUMERIC_FIELDS = [
+  "num_of_prev_attempts","studied_credits","avg_score","max_score","min_score",
+  "total_assessments","avg_weight","total_clicks","avg_clicks","max_clicks",
+  "total_interactions","active_days","date_registration"
+];
+const CATEGORICAL_FIELDS = Object.keys(OPTIONS);
+const ORDER = ["Distinction","Pass","Fail","Withdrawn"];
+
+const form = document.getElementById('form');
+const submitBtn = document.getElementById('submitBtn');
+const errorBox = document.getElementById('errorBox');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errorBox.style.display = 'none';
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Forecasting…';
+
+  const payload = {};
+  for (const f of CATEGORICAL_FIELDS) payload[f] = document.getElementById(f).value;
+  for (const f of NUMERIC_FIELDS) payload[f] = parseFloat(document.getElementById(f).value);
+
+  try {
+    const res = await fetch('/api/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Prediction failed');
+    renderResult(data);
+  } catch (err) {
+    errorBox.textContent = err.message;
+    errorBox.style.display = 'block';
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Forecast outcome';
+  }
+});
+
+function renderResult(data) {
+  document.getElementById('resultEmpty').style.display = 'none';
+  const body = document.getElementById('resultBody');
+  body.style.display = 'block';
+
+  const predEl = document.getElementById('predValue');
+  predEl.textContent = data.prediction;
+  predEl.parentElement.className = 'result-pred c-' + data.prediction;
+
+  const barsEl = document.getElementById('bars');
+  barsEl.innerHTML = ORDER.map(cls => {
+    const p = data.probabilities[cls] ?? 0;
+    const pct = Math.round(p * 100);
+    return `
+      <div class="bar-row c-${cls}">
+        <div class="top"><span class="name">${cls}</span><span>${pct}%</span></div>
+        <div class="bar-track"><div class="bar-fill fill-${cls}" style="width:${pct}%"></div></div>
+      </div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
